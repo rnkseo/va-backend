@@ -1,7 +1,7 @@
-fastapi>=0.109.0
+fastapi>=0.115.0
 uvicorn[standard]
 aiohttp>=3.9.3
 beautifulsoup4>=4.12.3
 lxml>=5.1.0
-pydantic>=2.0
+pydantic>=2.10.0
 python-multipart>=0.0.18
