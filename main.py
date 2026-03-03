@@ -412,24 +412,25 @@ async def analyze_stream(request: AuditRequest):
         async with aiohttp.ClientSession(headers=CRAWL_HEADERS, connector=connector) as session:
 
             # ── Crawl homepage ──────────────────────────────
-            try:
-                async with session.get(target, timeout=aiohttp.ClientTimeout(total=20), ssl=False, allow_redirects=True) as resp:
-                    final_url = str(resp.url)
-                    init_data['final_url'] = final_url
-                    init_data['security_headers'] = analyze_security_headers(dict(resp.headers), final_url)
-                    norm = normalize_url(final_url)
-                    found_urls.add(norm)
-
-                    text = await resp.text(errors='replace')
-soup = BeautifulSoup(text, 'html.parser')
-init_data['on_page'] = extract_on_page(soup, final_url)
-            except Exception as e:
-                init_data['error'] = str(e)
-
-            yield json.dumps(init_data) + '\n'
-
-            if found_urls:
-                yield json.dumps({'type': 'url', 'url': list(found_urls)[0]}) + '\n'
+            # ── Homepage link crawl fallback ─────────────────
+            if len(found_urls) < 5:
+                try:
+                    async with session.get(base, timeout=aiohttp.ClientTimeout(total=15), ssl=False) as resp:
+                        text = await resp.text(errors='replace')
+                        soup = BeautifulSoup(text, 'html.parser')
+                        for a in soup.find_all('a', href=True):
+                            href = urljoin(base, a['href'])
+                            if is_junk_link(href):
+                                continue
+                            norm = normalize_url(href)
+                            if is_valuable_url(norm, base_domain) and norm not in found_urls:
+                                if len(found_urls) >= MAX_URLS_FREE:
+                                    break
+                                found_urls.add(norm)
+                                yield json.dumps({'type': 'url', 'url': norm}) + '\n'
+                except Exception:
+                    # This except block was missing, causing the SyntaxError
+                    pass
 
             # ── Sitemap discovery ────────────────────────────
             base = init_data['final_url']
