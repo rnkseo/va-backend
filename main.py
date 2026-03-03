@@ -421,8 +421,8 @@ async def analyze_stream(request: AuditRequest):
                     found_urls.add(norm)
 
                     text = await resp.text(errors='replace')
-                    soup = BeautifulSoup(text, 'lxml')
-                    init_data['on_page'] = extract_on_page(soup, final_url)
+soup = BeautifulSoup(text, 'html.parser')
+init_data['on_page'] = extract_on_page(soup, final_url)
             except Exception as e:
                 init_data['error'] = str(e)
 
@@ -484,7 +484,7 @@ async def analyze_stream(request: AuditRequest):
                 try:
                     async with session.get(base, timeout=aiohttp.ClientTimeout(total=15), ssl=False) as resp:
                         text = await resp.text(errors='replace')
-                        soup = BeautifulSoup(text, 'lxml')
+                       soup = BeautifulSoup(text, 'html.parser')
                         for a in soup.find_all('a', href=True):
                             href = urljoin(base, a['href'])
                             if is_junk_link(href):
